@@ -27,10 +27,7 @@ namespace esphome
     static const uint8_t LCD_DISPLAY_DISPLAY_CURSOR_ON = 0x02;
     static const uint8_t LCD_DISPLAY_DISPLAY_ON = 0x04;
 
-    static const uint8_t LCD_DISPLAY_FUNCTION_8_BIT_MODE =
-        0x10; // This is not used because the Grove RGB LCD display is always in 4-bit mode.
     static const uint8_t LCD_DISPLAY_FUNCTION_2_LINE = 0x08;
-    static const uint8_t LCD_DISPLAY_FUNCTION_5X10_DOTS = 0x04;
 
     static const uint8_t LCD_BACKLIGHT_ADDRESS_V5 = 0x30;
     static const uint8_t LCD_BACKLIGHT_REG_MODE1 = 0x00;
@@ -49,17 +46,7 @@ namespace esphome
     {
       ESP_LOGCONFIG(TAG, "Setting up Grove RGB LCD Display...");
 
-      if (this->columns_ > 1)
-      {
-        this->display_function_ |= LCD_DISPLAY_FUNCTION_2_LINE;
-      }
-
-      this->current_column_ = 0;
-
-      if ((this->is_5x10_dots() == true) && (this->columns_ == 1))
-      {
-        this->display_function_ |= LCD_DISPLAY_FUNCTION_5X10_DOTS;
-      }
+      this->display_function_ |= LCD_DISPLAY_FUNCTION_2_LINE;
 
       // Commands can only be sent 40ms after boot-up, so let's wait if we're close
       delay(50);
@@ -116,7 +103,10 @@ namespace esphome
 
     void LCDGroveRGB::update()
     {
-      this->clear();
+      if (this->clear_on_update_)
+        this->clear();
+      if (this->home_on_update_)
+        this->home();
       this->call_writer();
     }
 
@@ -124,6 +114,13 @@ namespace esphome
     {
       this->command_(LCD_DISPLAY_COMMAND_CLEAR_DISPLAY);
       ESP_LOGVV(TAG, "Clear display command sent.");
+      delayMicroseconds(2000);
+    }
+
+    void LCDGroveRGB::home()
+    {
+      this->command_(LCD_DISPLAY_COMMAND_RETURN_HOME);
+      ESP_LOGVV(TAG, "Return home command sent.");
       delayMicroseconds(2000);
     }
 
@@ -144,8 +141,8 @@ namespace esphome
     void LCDGroveRGB::set_cursor(uint8_t column, uint8_t row)
     {
       column = (row == 0 ? column | 0x80 : column | 0xc0);
-      uint8_t data[2] = {0x80, column};
       this->command_(column);
+      ESP_LOGVV(TAG, "Set cursor command sent.");
     }
 
     void LCDGroveRGB::backlight() { this->backlight(255); }
@@ -207,18 +204,29 @@ namespace esphome
 
     void LCDGroveRGB::printf(uint8_t column, uint8_t row, const char *format, ...)
     {
-      this->set_cursor(column, row);
       va_list args;
       va_start(args, format);
-      this->printf(format, args);
+      char buffer[256];
+      int ret = vsnprintf(buffer, sizeof(buffer), format, args);
       va_end(args);
+      if (ret > 0)
+      {
+        this->set_cursor(column, row);
+        this->print(buffer);
+      }
     }
 
     void LCDGroveRGB::printf(const char *format, ...)
     {
       va_list args;
       va_start(args, format);
-      this->printf(format, args);
+      char buffer[256];
+      int ret = vsnprintf(buffer, sizeof(buffer), format, args);
+      va_end(args);
+      if (ret > 0)
+      {
+        this->print(buffer);
+      }
       va_end(args);
     }
 

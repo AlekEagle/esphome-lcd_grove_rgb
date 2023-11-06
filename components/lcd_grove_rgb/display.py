@@ -4,8 +4,9 @@ from esphome.components import display, i2c
 from esphome.const import CONF_ID, CONF_LAMBDA, CONF_POSITION, CONF_DATA, CONF_DIMENSIONS
 
 CONF_USER_CHARACTERS = "user_characters"
-
 CONF_BACKLIGHT_ADDRESS = "backlight"
+CONF_CLEAR_ON_UPDATE = "clear_on_update"
+CONF_HOME_ON_UPDATE = "home_on_update"
 
 lcd_grove_rgb_ns = cg.esphome_ns.namespace("lcd_grove_rgb")
 LCDGroveRGB = lcd_grove_rgb_ns.class_(
@@ -52,6 +53,8 @@ CONFIG_SCHEMA = display.BASIC_DISPLAY_SCHEMA.extend(
             validate_user_characters,
         ),
         cv.Optional(CONF_BACKLIGHT_ADDRESS, default=0x62): cv.i2c_address,
+        cv.Optional(CONF_CLEAR_ON_UPDATE, default=True): cv.boolean,
+        cv.Optional(CONF_HOME_ON_UPDATE, default=False): cv.boolean,
     }
 ).extend(cv.polling_component_schema("1s")).extend(i2c.i2c_device_schema(0x3E))
 
@@ -64,6 +67,8 @@ async def to_code(config):
     cg.add(var.set_dimensions(
         config[CONF_DIMENSIONS][0], config[CONF_DIMENSIONS][1]))
     cg.add(var.set_backlight_address(config[CONF_BACKLIGHT_ADDRESS]))
+    cg.add(var.set_clear_on_update(config[CONF_CLEAR_ON_UPDATE]))
+    cg.add(var.set_home_on_update(config[CONF_HOME_ON_UPDATE]))
     if CONF_USER_CHARACTERS in config:
         for usr in config[CONF_USER_CHARACTERS]:
             cg.add(var.set_user_defined_char(

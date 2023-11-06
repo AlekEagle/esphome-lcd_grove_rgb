@@ -24,12 +24,15 @@ namespace esphome
       }
       void set_user_defined_char(uint8_t pos, const std::vector<uint8_t> &data) { this->user_defined_chars_[pos] = data; }
       void set_writer(std::function<void(LCDGroveRGB &)> &&writer) { this->writer_ = std::move(writer); }
+      void set_clear_on_update(bool clear_on_update) { this->clear_on_update_ = clear_on_update; }
+      void set_home_on_update(bool home_on_update) { this->home_on_update_ = home_on_update; }
       void setup() override;
       float get_setup_priority() const override;
       void update() override;
 
       // Display commands
       void clear();
+      void home();
       void display();
       void no_display();
 
@@ -65,8 +68,6 @@ namespace esphome
       void loadchar(uint8_t location, uint8_t charmap[]);
 
     protected:
-      bool is_four_bit_mode() { return true; };
-      bool is_5x10_dots() { return false; };
       void i2c_send_byte(const uint8_t *value);
       void i2c_send_byteS(uint8_t *value, uint8_t len);
       void i2c_send_byte_backlight(const uint8_t *value);
@@ -81,10 +82,11 @@ namespace esphome
       uint8_t backlight_address_{0x62};
       uint8_t columns_;
       uint8_t rows_;
-      uint8_t current_column_;
       uint8_t display_function_;
       uint8_t display_control_;
       uint8_t display_mode_;
+      bool clear_on_update_;
+      bool home_on_update_;
       std::function<void(LCDGroveRGB &)> writer_;
       std::map<uint8_t, std::vector<uint8_t>> user_defined_chars_;
     };
